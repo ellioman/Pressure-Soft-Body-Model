@@ -1,4 +1,4 @@
-This project implements a 2D version of the "Pressure Soft Body Model" introduced by Maciej Matyka.
+A 2D Unity implementation of the "Pressure Soft Body Model" introduced by Maciej Matyka.
 
 The project must be run on Unity 5.2.1 or older. 
 
