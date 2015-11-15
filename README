@@ -1,0 +1,8 @@
+This project implements a 2D version of the "Pressure Soft Body Model" introduced by Maciej Matyka.
+
+The project must be run on Unity 5.2.1 or older. 
+
+Links:
+http://panoramix.ift.uni.wroc.pl/~maq/eng/softbodyrt.php
+http://panoramix.ift.uni.wroc.pl/~maq/eng/softbody.php
+http://panoramix.ift.uni.wroc.pl/~maq/talks/sigrad03.php?language=eng
