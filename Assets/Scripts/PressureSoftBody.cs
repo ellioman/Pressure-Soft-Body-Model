@@ -2,13 +2,15 @@
 using UnityEngine.Assertions;
 using System.Collections;
 
-[RequireComponent(typeof(LineRenderer))]
+[RequireComponent (typeof (MeshFilter), typeof (MeshRenderer))]
 public class PressureSoftBody : MonoBehaviour
 {
 	#region Variables
 
 	// Unity Editor Variables
 	[SerializeField] [Range(0, 0.5f)] protected float particleColliderRadius;// The size of the particle colliders
+	[SerializeField] protected Color outerColor;							// The body's outer color
+	[SerializeField] protected Color innerColor;							// The body's inner color
 	[SerializeField] protected int numOfParticles;							// How many particles should the body have?
 	[SerializeField] protected float bodyRadius;							// How big should the body be initially?
 	[SerializeField] protected int iterationsPerFixedUpdate;				// How many iterations should we calculate within each FixedUpdate?
@@ -20,8 +22,13 @@ public class PressureSoftBody : MonoBehaviour
 	[SerializeField] protected float gravityScale;							// The factor to multiply the gravity vector
 
 	// Protected Instance Variables
-	protected float deltaTime = 0f;											// deltaTime    => Time.fixedDeltaTime / iterationsPerFixedUpdate
-	protected LineRenderer lineRend = null;									// The renderer we use to show the body
+	protected float deltaTime = 0f;											// deltaTime => Time.fixedDeltaTime / iterationsPerFixedUpdate
+	protected int[] triangles = null;										// Mesh triangles...
+	protected Color[] colors = null;										// Mesh vertex colors..
+	protected Vector3[] vertices = null;									// Mesh vertices...
+	protected Vector2 centerPos = Vector2.zero;								// The body's center position
+	protected MeshFilter meshFilter = null;									// The mesh filter we use to draw the body
+	protected MeshRenderer meshRenderer = null;								// The renderer we use to show the body
 	protected PSBParticle[] particles = null;								// Container for all particles used
 	protected PSBParticle[] predictedParticles = null;						// Temporary container for Heun Integration
 	protected PSBInternalSpring[] internalSprings = null;					// All Springs inside the body
@@ -35,18 +42,40 @@ public class PressureSoftBody : MonoBehaviour
 	// Constructor
 	protected void Awake()
 	{
-		lineRend = GetComponent<LineRenderer>();
-		Assert.IsNotNull(lineRend);
+		meshFilter = GetComponent<MeshFilter>();
+		Assert.IsNotNull(meshFilter);
+		
+		meshRenderer = GetComponent<MeshRenderer>();
+		Assert.IsNotNull(meshRenderer);
 	}
 
 	// Use this for initialization
 	protected void Start()
 	{
-		// Make sure we can draw the entire body with the line renderer...
-		lineRend.SetVertexCount(numOfParticles + 1);
-		
-		// Create the particles used for the PSB model
-		CreateParticlesAndSprings();
+		// Creates the particles and internal springs for the body
+		CreateParticles();
+		CreateInternalSprings();
+
+		// Initialize the mesh vertex, color and triangle arrays...
+		vertices = new Vector3[numOfParticles + 1];
+		colors = new Color[numOfParticles + 1];
+		triangles = new int[numOfParticles * 3];
+
+		for (int i = 0; i < numOfParticles ; i++)
+		{
+			vertices[i + 1] = particles[i].rBody.position;
+			colors[i + 1] = outerColor;
+
+			// Each triangle is from the center vertex to two outer vertices
+			triangles[3 * i + 0] = 0;		// The center vertex
+			triangles[3 * i + 1] = i + 1;
+			triangles[3 * i + 2] = i + 2;
+		}
+		triangles[triangles.Length - 1] = 1;
+
+		meshFilter.sharedMesh.vertices = vertices;
+		meshFilter.sharedMesh.colors = colors;
+		meshFilter.sharedMesh.triangles = triangles;
 	}
 	
 	// Called every fixed framerate frame
@@ -74,12 +103,16 @@ public class PressureSoftBody : MonoBehaviour
 		}
 		
 		// ------------------------------------------------------------------
-		// STEP 3: Move the particles based on the PSB Calculations...
+		// STEP 3: Move the particles based on the PSB Calculations 
+		// and calculate the center position of the body
 		// ------------------------------------------------------------------
+		centerPos = Vector2.zero;
 		for (int i = 0; i < numOfParticles ; i++)
 		{
 			particles[i].rBody.MovePosition(particles[i].position);
+			centerPos += particles[i].position;
 		}
+		centerPos /= numOfParticles;
 	}
 	
 	// Update is called once per frame
@@ -92,14 +125,6 @@ public class PressureSoftBody : MonoBehaviour
 		// Reset position of the body...
 		if (Input.GetKeyUp(KeyCode.Space))
 		{
-			// Calculate the center of body
-			Vector2 centerPos = Vector2.zero;
-			for (int i = 0; i < numOfParticles ; i++)
-			{
-				centerPos += particles[i].position;
-			}
-			centerPos /= numOfParticles;
-
 			// Put the body back to (0,0)
 			for (int i = 0; i < numOfParticles ; i++)
 			{
@@ -107,20 +132,32 @@ public class PressureSoftBody : MonoBehaviour
 				particles[i].rBody.velocity = Vector2.zero;
 			}
 		}
-
-
-		// ------------------------------------------------------------------
-		// Draw the body...
-		// ------------------------------------------------------------------
-
-		for (int i = 0; i < numOfParticles ; i++)
+		else 
 		{
-			Debug.DrawLine(particles[i].position, particles[(i + 1) % numOfParticles].position, Color.red);
+			// ------------------------------------------------------------------
+			// Draw the body...
+			// ------------------------------------------------------------------
+			vertices[0] = centerPos;
+			colors[0] = innerColor;
 
-			lineRend.SetPosition(i, particles[i].rBody.position);
-
+			for (int i = 0; i < numOfParticles ; i++)
+			{
+				vertices[i + 1] = particles[i].rBody.position;
+				colors[i + 1] = outerColor;
+			}
+			meshFilter.sharedMesh.vertices = vertices;
+			meshFilter.sharedMesh.colors = colors;
+			
+			meshFilter.sharedMesh.RecalculateBounds();
+			meshFilter.sharedMesh.Optimize();
+			meshFilter.sharedMesh.RecalculateNormals();
+			meshFilter.sharedMesh.MarkDynamic();
 		}
-		lineRend.SetPosition(numOfParticles, particles[0].rBody.position);
+	}
+
+	protected void OnDisable()
+	{
+		meshFilter.sharedMesh.Clear();
 	}
 	
 	#endregion
@@ -227,13 +264,6 @@ public class PressureSoftBody : MonoBehaviour
 			particles[i].velocity = particles[i].velocity + (deltaTime/2.0f) * (particles[i].force + predictedParticles[i].force) / mass;
 			particles[i].position += particles[i].velocity * deltaTime;
 		}
-	}
-	
-	// Creates the particles and internal springs for the body
-	protected void CreateParticlesAndSprings()
-	{
-		CreateParticles();
-		CreateInternalSprings();
 	}
 	
 	// Creates particles for the body
