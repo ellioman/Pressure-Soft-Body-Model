@@ -8,31 +8,31 @@ public class PressureSoftBody : MonoBehaviour
 	#region Variables
 
 	// Unity Editor Variables
-	[SerializeField] [Range(0, 0.5f)] protected float particleColliderRadius;// The size of the particle colliders
-	[SerializeField] protected Color outerColor;							// The body's outer color
-	[SerializeField] protected Color innerColor;							// The body's inner color
-	[SerializeField] protected int numOfParticles;							// How many particles should the body have?
-	[SerializeField] protected float bodyRadius;							// How big should the body be initially?
-	[SerializeField] protected int iterationsPerFixedUpdate;				// How many iterations should we calculate within each FixedUpdate?
-	[SerializeField] protected float pressure;								// The amount of pressure inside the body
-	[SerializeField] protected float mass;									// The Mass to set on the particle's rigidbody
-	[SerializeField] protected float rigidbodyDrag;							// The Drag to set on the particle's rigidbody
-	[SerializeField] protected float springConstantElasticity;				// spring constant
-	[SerializeField] protected float springDamping;							// spring damping constant
-	[SerializeField] protected float gravityScale;							// The factor to multiply the gravity vector
+	[SerializeField] protected float particleColliderRadius;	// The size of the particle colliders
+	[SerializeField] protected Color outerColor;				// The body's outer color
+	[SerializeField] protected Color innerColor;				// The body's inner color
+	[SerializeField] protected int numOfParticles;				// How many particles should the body have?
+	[SerializeField] protected float bodyRadius;				// How big should the body be initially?
+	[SerializeField] protected int iterationsPerFixedUpdate;	// How many iterations should we calculate within each FixedUpdate?
+	[SerializeField] protected float pressure;					// The amount of pressure inside the body
+	[SerializeField] protected float mass;						// The Mass to set on the particle's rigidbody
+	[SerializeField] protected float rigidbodyDrag;				// The Drag to set on the particle's rigidbody
+	[SerializeField] protected float springConstantElasticity;	// spring constant
+	[SerializeField] protected float springDamping;				// spring damping constant
+	[SerializeField] protected float gravityScale;				// The factor to multiply the gravity vector
 
 	// Protected Instance Variables
-	protected float deltaTime = 0f;											// deltaTime => Time.fixedDeltaTime / iterationsPerFixedUpdate
-	protected int[] triangles = null;										// Mesh triangles...
-	protected Color[] colors = null;										// Mesh vertex colors..
-	protected Vector3[] vertices = null;									// Mesh vertices...
-	protected Vector2 centerPos = Vector2.zero;								// The body's center position
-	protected MeshFilter meshFilter = null;									// The mesh filter we use to draw the body
-	protected MeshRenderer meshRenderer = null;								// The renderer we use to show the body
-	protected PSBParticle[] particles = null;								// Container for all particles used
-	protected PSBParticle[] predictedParticles = null;						// Temporary container for Heun Integration
-	protected PSBInternalSpring[] internalSprings = null;					// All Springs inside the body
-	protected PolygonCollider2D polyCollider = null;						// The polygon collider which we use to get initial particle positions
+	protected float deltaTime = 0f;								// deltaTime => Time.fixedDeltaTime / iterationsPerFixedUpdate
+	protected int[] triangles = null;							// Mesh triangles...
+	protected Color[] colors = null;							// Mesh vertex colors..
+	protected Vector2 centerPos = Vector2.zero;					// The body's center position
+	protected Vector3[] vertices = null;						// Mesh vertices...
+	protected MeshFilter meshFilter = null;						// The mesh filter we use to draw the body
+	protected MeshRenderer meshRenderer = null;					// The renderer we use to show the body
+	protected PSBParticle[] particles = null;					// Container for all particles used
+	protected PSBParticle[] predictedParticles = null;			// Temporary container for Heun Integration
+	protected PolygonCollider2D polyCollider = null;			// The polygon collider which we use to get initial particle positions
+	protected PSBInternalSpring[] internalSprings = null;		// All Springs inside the body
 
 	#endregion
 	
@@ -82,7 +82,7 @@ public class PressureSoftBody : MonoBehaviour
 	protected void FixedUpdate()
 	{
 		// ------------------------------------------------------------------
-		// STEP 1: Update the particles array with the data from Unity's Rigidbodies...
+		// STEP 1: Update the particles array with the data from Unity's Rigidbodies
 		// ------------------------------------------------------------------
 		for (int i = 0; i < numOfParticles; i++)
 		{
@@ -155,6 +155,7 @@ public class PressureSoftBody : MonoBehaviour
 		}
 	}
 
+	// Cleanup. Called when the behaviour becomes disabled or inactive.
 	protected void OnDisable()
 	{
 		meshFilter.sharedMesh.Clear();
@@ -163,7 +164,7 @@ public class PressureSoftBody : MonoBehaviour
 	#endregion
 
 
-	#region Pressure Soft Body Calculations....
+	#region Pressure Soft Body Calculations
 	
 	// Calculates the accumululation of forces to the character
 	protected void AccumulateForces(ref PSBParticle[] particleArray)
@@ -183,7 +184,7 @@ public class PressureSoftBody : MonoBehaviour
 			particleArray[i].force = Vector2.zero;
 		}
 
-		/* spring force */
+		// Spring force
 		for (int i = 0; i < numOfParticles ; i++)
 		{
 			// get positions of spring start & end particles
@@ -213,10 +214,8 @@ public class PressureSoftBody : MonoBehaviour
 			internalSprings[i].norm.x =  (particle1Pos.y - particle2Pos.y) / lengthBetweenParticles;
 			internalSprings[i].norm.y = -(particle1Pos.x - particle2Pos.x) / lengthBetweenParticles;
 		}
-		
-		/* pressure force */
-		
-		/* Calculate Volume of the Ball (Gauss Theorem) */
+
+		// Calculate Volume of the Ball (Gauss Theorem)
 		for (int i = 0; i < numOfParticles; i++)
 		{
 			particle1Pos = particleArray[internalSprings[i].i].position;
