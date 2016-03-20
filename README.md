@@ -1,10 +1,10 @@
-# Megaman ##
+# Pressure Soft Body Model ##
 
 ## Description ##
 A 2D Unity implementation of the "Pressure Soft Body Model" introduced by Maciej Matyka.
 
 ## Requirements ##
-The project must be run on Unity3D version 5.2.1 or older. 
+The project must be run on Unity3D version 5.2.1.
 
 ## Links ##
 * Maciej Matyka webpage [link 1](http://panoramix.ift.uni.wroc.pl/~maq/eng/softbodyrt.php "Maciej Matyka webpage Link 1")  
